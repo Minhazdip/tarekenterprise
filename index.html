@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simple Sales Tracker</title>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#121a2b; --soft:#1b2540; --text:#e8eefc; --muted:#9fb0d7;
+      --accent:#5cc8ff; --accent-2:#7effb2; --danger:#ff6b6b; --warn:#ffd166;
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; background:linear-gradient(180deg,var(--bg),#0d1425 40%, #0c1020); color:var(--text);}    
+    header{position:sticky; top:0; z-index:5; backdrop-filter: blur(10px); background:rgba(11,18,32,.7); border-bottom:1px solid #1f2945}
+    .wrap{max-width:1100px; margin:0 auto; padding:18px}
+    h1{font-size:clamp(20px,3.6vw,32px); margin:0 0 6px; letter-spacing:.3px}
+    .sub{color:var(--muted); font-size:14px}
+
+    /* Layout */
+    .grid{display:grid; gap:16px}
+    @media(min-width:960px){
+      .grid-2{grid-template-columns: 420px 1fr}
+    }
+
+    /* Card */
+    .card{background:linear-gradient(180deg, var(--card), #0f1830); border:1px solid #1b2540; border-radius:var(--radius); box-shadow: 0 10px 30px rgba(0,0,0,.25)}
+    .card .head{padding:14px 16px; border-bottom:1px solid #1b2540; display:flex; align-items:center; justify-content:space-between}
+    .card .body{padding:16px}
+
+    /* Form */
+    label{display:block; font-size:13px; color:var(--muted); margin-bottom:6px}
+    input, select{width:100%; padding:12px 12px; border-radius:12px; border:1px solid #263357; background:#0e1730; color:var(--text); outline:none}
+    input::placeholder{color:#7b8dbb}
+    .row{display:grid; gap:12px}
+    @media(min-width:640px){.row-2{grid-template-columns: 1fr 1fr}}
+    @media(min-width:880px){.row-3{grid-template-columns: 1fr 1fr 1fr}}
+    .btns{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
+    .btn{border:1px solid #2a3962; background:linear-gradient(180deg,#1a2a50,#122043); color:var(--text); padding:11px 14px; border-radius:12px; cursor:pointer; font-weight:600}
+    .btn:hover{filter:brightness(1.1)}
+    .btn:active{transform:translateY(1px)}
+    .btn.primary{background:linear-gradient(180deg,#1f6feb,#1856c1); border-color:#2d5bd1}
+    .btn.accent{background:linear-gradient(180deg,#1d6,#0c5); border-color:#1b8e61}
+    .btn.warn{background:linear-gradient(180deg,#ffb703,#e19a00); border-color:#d09100; color:#202020}
+    .btn.danger{background:linear-gradient(180deg,#ff6b6b,#e85b5b); border-color:#cf4d4d}
+    .btn.ghost{background:transparent}
+
+    /* Table */
+    table{width:100%; border-collapse:collapse}
+    th, td{padding:10px 10px; border-bottom:1px solid #1b2540; text-align:left}
+    th{color:#a9b9e6; font-weight:700; font-size:13px}
+    tbody tr:hover{background:#0e1630}
+    .muted{color:var(--muted)}
+    .right{text-align:right}
+    .nowrap{white-space:nowrap}
+    .pill{display:inline-flex; gap:8px; align-items:center; padding:6px 10px; border-radius:999px; border:1px solid #27365f; background:#0c1734; font-size:13px; color:#cbd6ff}
+
+    /* Totals */
+    .totals{display:flex; gap:12px; flex-wrap:wrap}
+    .kpi{flex:1 1 160px; border-radius:14px; border:1px solid #203055; padding:14px; background:linear-gradient(180deg, #0e1730, #0c152c)}
+    .kpi .label{color:var(--muted); font-size:12px}
+    .kpi .value{font-size:22px; font-weight:800; letter-spacing:.3px}
+
+    /* Footer */
+    footer{padding:24px; color:#93a7dc; text-align:center}
+    a.link{color:var(--accent)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>🧮 Simple Sales Tracker</h1>
+      <div class="sub">Input your daily sales (date, item name, quantity, unit price). The app totals everything automatically and saves to your browser.</div>
+    </div>
+  </header>
+
+  <main class="wrap grid grid-2" id="app">
+
+    <!-- Left: Entry Form -->
+    <section class="card" aria-labelledby="formTitle">
+      <div class="head">
+        <strong id="formTitle">Add / Edit Entry</strong>
+        <span class="pill"><span id="todayTag">Today</span> · <span id="entriesCount">0</span> entries</span>
+      </div>
+      <div class="body">
+        <form id="entryForm" autocomplete="off">
+          <div class="row row-2">
+            <div>
+              <label for="date">Date</label>
+              <input type="date" id="date" required />
+            </div>
+            <div>
+              <label for="name">Item Name</label>
+              <input type="text" id="name" placeholder="e.g., Chicken pizza slice" required />
+            </div>
+          </div>
+          <div class="row row-3" style="margin-top:12px">
+            <div>
+              <label for="qty">Quantity</label>
+              <input type="number" id="qty" inputmode="decimal" min="0" step="0.01" placeholder="e.g., 3" required />
+            </div>
+            <div>
+              <label for="price">Unit Price</label>
+              <input type="number" id="price" inputmode="decimal" min="0" step="0.01" placeholder="e.g., 120" required />
+            </div>
+            <div>
+              <label for="lineTotal">Line Total</label>
+              <input type="text" id="lineTotal" readonly />
+            </div>
+          </div>
+
+          <div class="btns">
+            <button type="submit" class="btn primary" id="saveBtn">Save Entry</button>
+            <button type="button" class="btn ghost" id="resetBtn">Reset</button>
+            <button type="button" class="btn accent" id="todayBtn">Set Today</button>
+          </div>
+          <input type="hidden" id="editId" />
+        </form>
+
+        <hr style="border:0; border-top:1px solid #1b2540; margin:16px 0"/>
+
+        <div class="btns">
+          <button class="btn warn" id="exportBtn">Export CSV</button>
+          <button class="btn danger" id="clearBtn">Clear All Data</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: Table & Totals -->
+    <section class="card" aria-labelledby="listTitle">
+      <div class="head">
+        <strong id="listTitle">Entries</strong>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+          <input id="filterDate" type="date" title="Filter by date"/>
+          <button class="btn ghost" id="clearFilter">All</button>
+          <input id="search" type="text" placeholder="Search item name…" style="width:220px" />
+        </div>
+      </div>
+      <div class="body">
+        <div class="totals" id="totals">
+          <div class="kpi">
+            <div class="label">Total Revenue (filtered)</div>
+            <div class="value" id="totalRevenue">৳0.00</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Total Quantity (filtered)</div>
+            <div class="value" id="totalQty">0</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Entries (filtered)</div>
+            <div class="value" id="totalRows">0</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Grand Revenue (all time)</div>
+            <div class="value" id="grandRevenue">৳0.00</div>
+          </div>
+        </div>
+
+        <div style="overflow:auto; margin-top:12px">
+          <table id="table">
+            <thead>
+              <tr>
+                <th class="nowrap">Date</th>
+                <th>Item</th>
+                <th class="right nowrap">Qty</th>
+                <th class="right nowrap">Price</th>
+                <th class="right nowrap">Line Total</th>
+                <th class="nowrap">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tbody">
+              <!-- rows injected -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    Built with ❤️ — data is stored locally in your browser (LocalStorage).
+  </footer>
+
+<script>
+(function(){
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+  const fmtMoney = v => `৳${Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2})}`;
+  const fmtQty = v => Number(v||0).toLocaleString(undefined,{maximumFractionDigits:2});
+  const todayISO = () => new Date().toISOString().slice(0,10);
+
+  const STORE_KEY = 'salesRecordsV1';
+  /** @type {Array<{id:string,date:string,name:string,qty:number,price:number,total:number}>} */
+  let state = load();
+
+  const els = {
+    date: $('#date'), name: $('#name'), qty: $('#qty'), price: $('#price'), lineTotal: $('#lineTotal'),
+    editId: $('#editId'), entriesCount: $('#entriesCount'), todayTag: $('#todayTag'),
+    saveBtn: $('#saveBtn'), resetBtn: $('#resetBtn'), todayBtn: $('#todayBtn'),
+    exportBtn: $('#exportBtn'), clearBtn: $('#clearBtn'),
+    filterDate: $('#filterDate'), clearFilter: $('#clearFilter'), search: $('#search'),
+    tbody: $('#tbody'), totalRevenue: $('#totalRevenue'), totalQty: $('#totalQty'), totalRows: $('#totalRows'), grandRevenue: $('#grandRevenue')
+  };
+
+  // Initialize
+  els.date.value = todayISO();
+  els.todayTag.textContent = new Date().toLocaleDateString();
+  updateCounts();
+  render();
+
+  // Form live total
+  ['input','change'].forEach(evt => {
+    els.qty.addEventListener(evt, updateLineTotal);
+    els.price.addEventListener(evt, updateLineTotal);
+  });
+  function updateLineTotal(){
+    const qty = parseFloat(els.qty.value) || 0;
+    const price = parseFloat(els.price.value) || 0;
+    const total = qty * price;
+    els.lineTotal.value = fmtMoney(total);
+  }
+
+  // Save / Edit
+  $('#entryForm').addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const record = readForm();
+    if(!record) return;
+
+    if(els.editId.value){
+      const idx = state.findIndex(r=>r.id===els.editId.value);
+      if(idx>-1) state[idx] = record; else state.push(record); // fallback
+    } else {
+      state.push(record);
+    }
+    persist();
+    resetForm();
+    render();
+  });
+
+  function readForm(){
+    const date = els.date.value || todayISO();
+    const name = els.name.value.trim();
+    const qty = parseFloat(els.qty.value);
+    const price = parseFloat(els.price.value);
+
+    if(!name){ alert('Please enter item name'); return null; }
+    if(!isFinite(qty) || qty<=0){ alert('Quantity must be > 0'); return null; }
+    if(!isFinite(price) || price<0){ alert('Unit price must be ≥ 0'); return null; }
+
+    const total = +(qty*price).toFixed(2);
+    const id = els.editId.value || cryptoRandomId();
+    return {id, date, name, qty:+qty, price:+price, total};
+  }
+
+  function resetForm(){
+    $('#entryForm').reset();
+    els.date.value = todayISO();
+    els.lineTotal.value = '';
+    els.editId.value = '';
+    els.saveBtn.textContent = 'Save Entry';
+  }
+
+  els.resetBtn.addEventListener('click', resetForm);
+  els.todayBtn.addEventListener('click', ()=>{ els.date.value = todayISO(); });
+
+  // Filtering & search
+  [els.filterDate, els.search].forEach(el=> el.addEventListener('input', render));
+  els.clearFilter.addEventListener('click', ()=>{ els.filterDate.value=''; els.search.value=''; render(); });
+
+  // Export CSV
+  els.exportBtn.addEventListener('click', ()=>{
+    const rows = [['Date','Item','Quantity','Unit Price','Line Total']]
+      .concat(state.map(r=>[r.date, r.name, String(r.qty), String(r.price), String(r.total)]));
+    const csv = rows.map(r=>r.map(s=>`"${String(s).replaceAll('"','""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download=`sales_export_${todayISO()}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // Clear all
+  els.clearBtn.addEventListener('click', ()=>{
+    if(confirm('Delete ALL saved entries? This cannot be undone.')){
+      state = []; persist(); render();
+    }
+  });
+
+  // Table actions (edit/delete)
+  els.tbody.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-act]');
+    if(!btn) return;
+    const id = btn.getAttribute('data-id');
+    const act = btn.getAttribute('data-act');
+    const idx = state.findIndex(r=>r.id===id);
+    if(idx===-1) return;
+
+    if(act==='edit'){
+      const r = state[idx];
+      els.date.value = r.date; els.name.value=r.name; els.qty.value=r.qty; els.price.value=r.price; updateLineTotal();
+      els.editId.value=r.id; els.saveBtn.textContent='Update Entry';
+      window.scrollTo({top:0, behavior:'smooth'});
+    }
+    if(act==='del'){
+      if(confirm('Delete this entry?')){ state.splice(idx,1); persist(); render(); }
+    }
+  });
+
+  function render(){
+    const q = (els.search.value||'').trim().toLowerCase();
+    const d = (els.filterDate.value||'').trim();
+    const filtered = state.filter(r => (d? r.date===d : true) && (q? r.name.toLowerCase().includes(q): true));
+
+    // Sort by date desc then insert order
+    filtered.sort((a,b)=> a.date===b.date ? 0 : (a.date<b.date?1:-1));
+
+    els.tbody.innerHTML = filtered.map(r=>`
+      <tr>
+        <td class="nowrap">${r.date}</td>
+        <td>${escapeHtml(r.name)}</td>
+        <td class="right">${fmtQty(r.qty)}</td>
+        <td class="right">${fmtMoney(r.price)}</td>
+        <td class="right">${fmtMoney(r.total)}</td>
+        <td class="nowrap">
+          <button class="btn" data-act="edit" data-id="${r.id}" title="Edit">✏️</button>
+          <button class="btn danger" data-act="del" data-id="${r.id}" title="Delete">🗑️</button>
+        </td>
+      </tr>`).join('');
+
+    // Totals
+    const totals = filtered.reduce((acc,r)=>{acc.sum+=r.total; acc.qty+=r.qty; return acc},{sum:0,qty:0});
+    els.totalRevenue.textContent = fmtMoney(totals.sum);
+    els.totalQty.textContent = fmtQty(totals.qty);
+    els.totalRows.textContent = filtered.length.toLocaleString();
+    els.grandRevenue.textContent = fmtMoney(state.reduce((a,b)=>a+b.total,0));
+
+    updateCounts();
+  }
+
+  function updateCounts(){
+    els.entriesCount.textContent = state.length;
+  }
+
+  function persist(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+  function load(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||'[]'); }catch{ return []; } }
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c])); }
+  function cryptoRandomId(){
+    if(window.crypto?.getRandomValues){
+      const a = new Uint32Array(3); window.crypto.getRandomValues(a); return Array.from(a,x=>x.toString(36)).join('');
+    }
+    return String(Math.random()).slice(2)+String(Date.now());
+  }
+})();
+</script>
+</body>
+</html>
